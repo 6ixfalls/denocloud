@@ -1,0 +1,26 @@
+version: "3"
+services:
+  app:
+    image: 'sixfalls/deno:latest'
+    user: 'deno'
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - '80'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /usr/lib/libdevmapper.so.1.02:/usr/lib/libdevmapper.so.1.02
+      - ./:/app
+    entrypoint: ["/bin/sh", "-c"]
+    command: ./entrypoint.sh
+    environment:
+      - DENO_ORIGIN=${DENO_ORIGIN}
+      - ENDPOINT=${ENDPOINT}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
+      - ACCESS_KEY=${ACCESS_KEY}
+
+networks:
+  default:
+    name: nginx-proxy-manager_default

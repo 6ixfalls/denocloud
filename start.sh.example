@@ -1,0 +1,3 @@
+#!/bin/bash
+export HISTIGNORE='doppler run*'
+sudo doppler run --token="ENTER TOKEN HERE" --command="docker compose up -d"

@@ -1,0 +1,11 @@
+# Snyk cache file
+.dccache
+
+# Deno vendor dir
+vendor/
+
+# Start and stop scripts
+start
+stop
+start.sh
+stop.sh
