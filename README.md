@@ -1,5 +1,8 @@
 # DenoCloud
-Simple Cloud Functions for Deno
+Simple Cloud Functions for Deno<br>
+```diff
+- This project is not ready for use.
+```
 
 ## Prerequisites
 Docker CLI - [installation](https://docs.docker.com/engine/install/)<br>
