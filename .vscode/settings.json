@@ -1,0 +1,11 @@
+{
+    "deno.enable": false,
+    "files.exclude": {
+        "**/.dccache": true,
+        "**/.vscode": true
+    },
+    "deno.enablePaths": [
+        "./shared",
+        "./worker"
+    ]
+}

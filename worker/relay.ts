@@ -51,7 +51,9 @@ function patchedReq(req: Request): [URL, RequestInit] {
 async function relayTo(req: Request): Promise<Response> {
     const [url, init] = patchedReq(req);
     try {
-        return await fetch(url, init);
+        const request = new Request(url);
+        // deepcode ignore Ssrf: Proxying to local server
+        return await fetch(request, init);
     } catch (e) {
         return new Response(e.message, { status: 500 });
     }
