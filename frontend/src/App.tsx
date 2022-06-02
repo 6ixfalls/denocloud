@@ -14,7 +14,7 @@ const supabase = createClient(
 
 const SignupSchema = Yup.object().shape({
   email: Yup.string().email('Invalid Email').required('Required'),
-  password: Yup.string().min(6, '6 Characters Minimum').required('Required'),
+  password: Yup.string().required('Required'),
 })
 
 const ContainerPropTypes = {
