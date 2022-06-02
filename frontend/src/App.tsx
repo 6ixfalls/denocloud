@@ -1,10 +1,8 @@
 import React from 'react';
 import PropTypes, { InferProps } from "prop-types";
 import { Typography, Button, Form, Input } from '@supabase/ui';
-import { UserProvider, useUser } from "@supabase/auth-helpers-react";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import * as Yup from 'yup';
-import axios from 'axios';
 import Toast from "./components/Toast";
 
 const { Text } = Typography;
@@ -15,8 +13,8 @@ const supabase = createClient(
 );
 
 const SignupSchema = Yup.object().shape({
-  email: Yup.string().email('Invalid email').required('Required'),
-  password: Yup.string().required('Required'),
+  email: Yup.string().email('Invalid Email').required('Required'),
+  password: Yup.string().min(6, '6 Characters Minimum').required('Required'),
 })
 
 const ContainerPropTypes = {
@@ -27,12 +25,13 @@ const ContainerPropTypes = {
 
 type ContainerTypes = InferProps<typeof ContainerPropTypes>;
 const Container = (props: ContainerTypes) => {
-  const { user } = useUser();
+  const user = supabase.auth.user();
+  console.log(user);
   if (user)
     return (
       <>
         <Text>Signed in: {user.email}</Text>
-        <Button block onClick={() => props.supabaseClient.auth.signOut()}>
+        <Button block onClick={() => {props.supabaseClient.auth.signOut(); window.location.reload();}}>
           Sign out
         </Button>
       </>
@@ -42,7 +41,6 @@ const Container = (props: ContainerTypes) => {
 
 function App() {
   return (
-    <UserProvider supabaseClient={supabase}>
       <Container supabaseClient={supabase}>
         <Form
           initialValues={{
@@ -50,21 +48,18 @@ function App() {
             password: ''
           }}
           validationSchema={SignupSchema}
-          onSubmit={(values: any, { setSubmitting }: any) => {
-            Toast.toast("Success", {type: "success", duration: 1000000});
-            Toast.toast("Error", {type: "error", duration: 1000000});
-            Toast.toast("Loading", {type: "loading", duration: 1000000});
-            Toast.toast("??", {duration: 1000000});
+          onSubmit={async (values: any, { setSubmitting }: any) => {
+            const { error: signInError } = await supabase.auth.signIn({
+              email: values.email,
+              password: values.password
+            }, {});
+            if (signInError)
+              Toast.toast(signInError.message, {type: "error"});
+            else {
+              Toast.toast("Signed in", {type: "success"});
+              window.location.reload();
+            }
             setSubmitting(false);
-            axios({
-              method: 'post',
-              url: process.env.PUBLIC_URL + '/auth/login',
-              data: values,
-            }).then(res => {
-              Toast.toast("Success", {type: "success"});
-            }).catch(e => {
-
-            });
           }}
           className="w-full h-screen relative flex flex-col items-center justify-center mx-auto text-gray-50"
         >
@@ -93,7 +88,6 @@ function App() {
           )}
         </Form>
       </Container>
-    </UserProvider>
   );
 }
 

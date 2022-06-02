@@ -1,14 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import Toast from "./components/Toast";
+import Dashboard from "./routes/dashboard";
 
 ReactDOM.render(
   <React.StrictMode>
-    <Toast.Toaster></Toast.Toaster>
-    <App />
+    <BrowserRouter>
+      <Toast.Toaster></Toast.Toaster>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/dashboard" element={<Dashboard />}>
+
+        </Route>
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>,
   document.getElementById('root')
 );
