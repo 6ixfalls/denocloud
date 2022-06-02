@@ -16,7 +16,7 @@ ReactDOM.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/dashboard" element={<Dashboard />}>
-          <Route path="/" element={<DashboardIndex />} />
+          <Route index element={<DashboardIndex />} />
           <Route path="editor" element={<Editor />} />
         </Route>
       </Routes>
