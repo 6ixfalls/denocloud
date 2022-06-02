@@ -1,10 +1,11 @@
 import { Outlet } from "react-router-dom";
+import { Typography, Tabs } from "@supabase/ui";
 
 export default function Dashboard() {
     return (
-        <main style={{ padding: "1rem 0" }}>
-          <h2>Expenses</h2>
+        <div className="p-5 font-medium text-white">
+          <Typography.Text>asd</Typography.Text>
           <Outlet />
-        </main>
+        </div>
       );
 }
