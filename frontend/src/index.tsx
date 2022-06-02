@@ -6,6 +6,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import Toast from "./components/Toast";
 import Dashboard from "./routes/dashboard";
+import Editor from './routes/dashboard/editor';
 
 ReactDOM.render(
   <React.StrictMode>
@@ -14,7 +15,7 @@ ReactDOM.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/dashboard" element={<Dashboard />}>
-
+          <Route path="editor" element={<Editor />} />
         </Route>
       </Routes>
     </BrowserRouter>
