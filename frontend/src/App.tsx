@@ -1,16 +1,11 @@
 import React from 'react';
 import PropTypes, { InferProps } from "prop-types";
 import { Typography, Button, Form, Input } from '@supabase/ui';
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "@supabase/supabase-js";
 import * as Yup from 'yup';
 import Toast from "./components/Toast";
 
 const { Text } = Typography;
-
-const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL || "",
-  process.env.REACT_APP_ANON_KEY || ""
-);
 
 const SignupSchema = Yup.object().shape({
   email: Yup.string().email('Invalid Email').required('Required'),
@@ -25,7 +20,7 @@ const ContainerPropTypes = {
 
 type ContainerTypes = InferProps<typeof ContainerPropTypes>;
 const Container = (props: ContainerTypes) => {
-  const user = supabase.auth.user();
+  const user = props.supabaseClient.auth.user();
   console.log(user);
   if (user)
     return (
@@ -41,7 +36,7 @@ const Container = (props: ContainerTypes) => {
 
 function App() {
   return (
-      <Container supabaseClient={supabase}>
+      <Container supabaseClient={globalThis.supabaseClient}>
         <Form
           initialValues={{
             email: '',
@@ -49,7 +44,7 @@ function App() {
           }}
           validationSchema={SignupSchema}
           onSubmit={async (values: any, { setSubmitting }: any) => {
-            const { error: signInError } = await supabase.auth.signIn({
+            const { error: signInError } = await globalThis.supabaseClient.auth.signIn({
               email: values.email,
               password: values.password
             }, {});

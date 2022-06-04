@@ -8,6 +8,7 @@ import {
     Status,
     Context,
 } from "https://deno.land/x/oak@v10.6.0/mod.ts";
+import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@1.35.3";
 
 const app = new Application();
@@ -17,50 +18,20 @@ const supabase = createClient(
     Deno.env.get("SUPABASE_SERVICE_KEY") || ""
 );
 
-async function getUserByRequest(
-    request: Request,
-    response: Response,
-    cookies: Cookies
-) {
+async function getUserByRequest(request: Request, response: Response) {
     try {
-        const accesstoken = await cookies.get("access-token");
-        const refreshtoken = await cookies.get("refresh-token");
-
-        if (!accesstoken) throw new Error("No access token");
-
-        const { user, error: getUserError } = await supabase.auth.api.getUser(
-            accesstoken
-        );
-        if (getUserError) {
-            if (!refreshtoken) throw new Error("No refresh token");
-            const { data, error } = await supabase.auth.api.refreshAccessToken(
-                refreshtoken
-            );
-            if (error) {
-                throw error;
-            } else if (data) {
-                await cookies.set("access-token", data.access_token, {
-                    domain: "",
-                    maxAge: 60 * 60 * 8,
-                    path: "/",
-                    sameSite: "lax",
-                });
-                await cookies.set("refresh-token", data.refresh_token!, {
-                    domain: "",
-                    maxAge: 60 * 60 * 8,
-                    path: "/",
-                    sameSite: "lax",
-                });
-                return {
-                    token: data.access_token,
-                    user: data.user,
-                    data: user,
-                    error: null,
-                };
-            }
+        const token = await request.headers.get("Authorization");
+        if (token) {
+            const accesstoken = token.replace(/^bearer/i, "").trim();
+            const { user, error: getUserError } =
+                await supabase.auth.api.getUser(accesstoken);
+            if (getUserError) throw new Error("Expired access token");
+            return { token: accesstoken, user: user, data: user, error: null };
+        } else {
+            throw new Error("No access token");
         }
-        return { token: accesstoken, user: user, data: user, error: null };
     } catch (e) {
+        console.log(e);
         return { token: null, user: null, data: null, error: e };
     }
 }
@@ -80,9 +51,30 @@ app.use(
         },
         next
     ) => {
-        const user = await getUserByRequest(request, response, cookies);
+        const user = await getUserByRequest(request, response);
         if (!user.error) state.user = user;
         next();
+    }
+);
+
+router.get(
+    "/projects/list",
+    async ({
+        request,
+        response,
+        cookies,
+        state,
+    }: {
+        request: Request;
+        response: Response;
+        cookies: Cookies;
+        state: State;
+    }) => {
+        if (state.user)
+            response.body = `[{"name": "roproxy"}, {"name": "test"}]`;
+        else {
+            response.status = Status.Unauthorized;
+        }
     }
 );
 
@@ -99,14 +91,14 @@ router.get(
         cookies: Cookies;
         state: State;
     }) => {
-        if (state.user)
-            response.body = `Hello ${JSON.stringify(state.user, null, 2)}`;
+        if (state.user) response.body = `Hello ${state.user.data.email}`;
         else {
             response.status = Status.Unauthorized;
         }
     }
 );
 
+app.use(oakCors({ origin: /^.+localhost:(1234|3000)$/ }));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
