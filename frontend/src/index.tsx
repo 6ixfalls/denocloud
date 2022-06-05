@@ -8,7 +8,9 @@ import reportWebVitals from './reportWebVitals';
 import Toast from "./components/Toast";
 import Dashboard from "./routes/dashboard";
 import DashboardIndex from "./routes/dashboard/index";
-import Editor from './routes/dashboard/editor';
+import Editor from './routes/dashboard/project/editor';
+import Project from "./routes/dashboard/project";
+import ProjectIndex from "./routes/dashboard/project/index";
 
 declare global {
   var supabaseClient: SupabaseClient;
@@ -27,7 +29,10 @@ ReactDOM.render(
           <Route path="/" element={<App />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardIndex />} />
-            <Route path="editor" element={<Editor />} />
+            <Route path=":project" element={<Project />}>
+              <Route index element={<ProjectIndex />} />
+              <Route path="editor" element={<Editor />} />
+            </Route>
           </Route>
         </Routes>
     </BrowserRouter>

@@ -28,6 +28,7 @@ async function getUserByRequest(request: Request, response: Response) {
             if (getUserError) throw new Error("Expired access token");
             return { token: accesstoken, user: user, data: user, error: null };
         } else {
+            console.log(request);
             throw new Error("No access token");
         }
     } catch (e) {
@@ -51,8 +52,10 @@ app.use(
         },
         next
     ) => {
-        const user = await getUserByRequest(request, response);
-        if (!user.error) state.user = user;
+        if (request.method !== "OPTIONS") {
+            const user = await getUserByRequest(request, response);
+            if (!user.error) state.user = user;
+        }
         next();
     }
 );
@@ -71,7 +74,7 @@ router.get(
         state: State;
     }) => {
         if (state.user)
-            response.body = `[{"name": "roproxy"}, {"name": "test"}]`;
+            response.body = `[{"name": "roproxy", "state": "RUNNING"}, {"name": "test", "state": "STOPPED"}, {"name": "test", "state": "STARTING"}, {"name": "test", "state": "FAILED"}, {"name": "test", "state": "UNKNOWN"}]`;
         else {
             response.status = Status.Unauthorized;
         }
