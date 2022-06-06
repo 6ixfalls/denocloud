@@ -1,0 +1,7 @@
+.sbui-upload-dragger {
+    @apply cursor-pointer max-w-lg flex justify-center px-6 pt-5 pb-6 my-5 border-2 border-gray-1000 border-dashed rounded-md m-auto;
+}
+
+.sbui-upload-dragger--dragged {
+    /*@apply bg-brand-100;*/
+}
