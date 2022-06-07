@@ -8,6 +8,7 @@ import { oneDark } from "./one-dark";
 import { syntaxTree } from "@codemirror/language";
 import { Loading, Button, IconUpload, Modal, Typography } from "@supabase/ui";
 import Upload from "../../../components/Upload";
+import Toast from "../../../components/Toast";
 
 const completePropertyAfter = ["PropertyName", ".", "?."]
 const dontCompleteIn = ["TemplateString", "LineComment", "BlockComment",
@@ -42,7 +43,7 @@ function completeFromGlobalScope(context: CompletionContext) {
     return null
 }
 
-class EditorComponent extends React.Component<{ project: string }, { code: string | undefined, loading: boolean, uploadOpen: boolean, errorOpen: boolean, errorMessage?: string, uploadFile?: File }> {
+class EditorComponent extends React.Component<{ project: string }, { code: string, loading: boolean, uploadOpen: boolean, errorOpen: boolean, errorMessage?: string, uploadFile?: File }> {
     constructor(props: any) {
         super(props);
         this.setFile = this.setFile.bind(this);
@@ -59,7 +60,7 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
         if (error) {
             this.setState({ code: 'console.log("Welcome to DenoCloud!");', loading: false });
         } else {
-            this.setState({ code: await data?.text(), loading: false });
+            this.setState({ code: await data?.text() || 'console.log("Welcome to DenoCloud!");', loading: false });
         }
     }
 
@@ -127,7 +128,14 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
                 </Modal>
                 <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
                     <Button icon={<IconUpload />} size="medium" className="m-2" onClick={() => this.setState({ uploadOpen: true })}>Upload File</Button>
-                    <Button size="medium" className="m-2"><Link to="editor">Save and Deploy</Link></Button>
+                    <Button size="medium" className="m-2" onClick={async () => {
+                        const { error } = await globalThis.supabaseClient.storage.from("worker-storage").update(globalThis.supabaseClient.auth.user()?.id + "/" + this.props.project + ".js", this.state.code, { contentType: "text/javascript" });
+                        if (error) {
+                            Toast.toast(error.message, { type: "error" });
+                        } else {
+                            Toast.toast("Worker was uploaded to cloud", { type: "success" });
+                        }
+                    }}>Save and Deploy</Button>
                 </div>
                 <Loading active={this.state.loading}>
                     <CodeMirror
