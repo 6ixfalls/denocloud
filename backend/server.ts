@@ -8,15 +8,11 @@ import {
     Status,
     Context,
 } from "https://deno.land/x/oak@v10.6.0/mod.ts";
-import { oakCors } from "https://deno.land/x/cors/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@1.35.3";
+import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { supabase } from "./apis.ts";
 
 const app = new Application();
 const router = new Router();
-const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") || "",
-    Deno.env.get("SUPABASE_SERVICE_KEY") || ""
-);
 
 async function getUserByRequest(request: Request, response: Response) {
     try {

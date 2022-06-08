@@ -8,5 +8,6 @@
         "./shared",
         "./worker",
         "./backend"
-    ]
+    ],
+    "typescript.validate.enable": false
 }
