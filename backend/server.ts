@@ -8,6 +8,7 @@ import {
     Status,
     Context,
 } from "https://deno.land/x/oak@v10.6.0/mod.ts";
+import { readAll } from "https://deno.land/x/std@0.143.0/io/util.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { supabase } from "./apis.ts";
 
@@ -75,6 +76,36 @@ router.get(
         }
     }
 );
+
+router.post(
+    "/update_proxy",
+    async ({
+        request,
+        response,
+        cookies,
+        state,
+    }: {
+        request: Request;
+        response: Response;
+        cookies: Cookies;
+        state: State;
+    }) => {
+        const token = await request.headers.get("Authorization");
+        if (token) {
+            const accesstoken = token.replace(/^bearer/i, "").trim();
+            if (accesstoken === Deno.env.get("SUPABASE_AUTH_TOKEN")) {
+                const result = request.body();
+                console.log(result);
+                //@ts-ignore
+                console.log(request, result.value);
+            } else {
+                response.status = Status.Unauthorized;
+            }
+        } else {
+            response.status = Status.Unauthorized;
+        }
+    }
+)
 
 router.get(
     "/",

@@ -3,8 +3,10 @@ import { buildChartTheme, Axis, Grid, Tooltip, XYChart, TooltipProvider, AreaSer
 import { LinearGradient } from "@visx/gradient";
 import { ParentSize } from "@visx/responsive";
 import { appleStock } from '@visx/mock-data';
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import * as yup from "yup";
+import { supabaseClient } from "../../..";
+import Toast from "../../../components/Toast";
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
 
@@ -50,6 +52,8 @@ const theme = buildChartTheme({
 });
 
 export default function ProjectIndex() {
+    const { project } = useParams();
+
     return (
         <div>
             <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
@@ -71,7 +75,7 @@ export default function ProjectIndex() {
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
                                             showVerticalCrosshair
-                                            verticalCrosshairStyle={{ stroke: "#888", strokeWidth: "1px" }}
+                                            verticalCrosshairStyle={{ stroke: "#ccc", strokeWidth: "1px", opacity: 1 }}
                                             showDatumGlyph
                                             unstyled
                                             applyPositionStyle
@@ -107,6 +111,7 @@ export default function ProjectIndex() {
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
                                             showVerticalCrosshair
+                                            verticalCrosshairStyle={{ stroke: "#ccc", strokeWidth: "1px", opacity: 1 }}
                                             showDatumGlyph
                                             unstyled
                                             applyPositionStyle
@@ -114,7 +119,7 @@ export default function ProjectIndex() {
                                                 <div className="text-white text-sm p-2 bg-[#1f1f1f] border border-[#2a2a2a] rounded">
                                                     <span className="font-bold">{accessors.xAccessor(tooltipData?.nearestDatum?.datum).toLocaleString("en-US", { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</span>
                                                     <br />
-                                                    {accessors.yAccessor(tooltipData?.nearestDatum?.datum) + " Errors"}
+                                                    {accessors.yAccessor(tooltipData?.nearestDatum?.datum) + " Requests"}
                                                 </div>
                                             )}
                                         />
@@ -142,6 +147,7 @@ export default function ProjectIndex() {
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
                                             showVerticalCrosshair
+                                            verticalCrosshairStyle={{ stroke: "#ccc", strokeWidth: "1px", opacity: 1 }}
                                             showDatumGlyph
                                             unstyled
                                             applyPositionStyle
@@ -149,7 +155,7 @@ export default function ProjectIndex() {
                                                 <div className="text-white text-sm p-2 bg-[#1f1f1f] border border-[#2a2a2a] rounded">
                                                     <span className="font-bold">{accessors.xAccessor(tooltipData?.nearestDatum?.datum).toLocaleString("en-US", { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' })}</span>
                                                     <br />
-                                                    {accessors.yAccessor(tooltipData?.nearestDatum?.datum) + " ms"}
+                                                    {accessors.yAccessor(tooltipData?.nearestDatum?.datum) + " Requests"}
                                                 </div>
                                             )}
                                         />
@@ -169,7 +175,12 @@ export default function ProjectIndex() {
                 }}
                 validationSchema={SettingsSchema}
                 onSubmit={async (values: any, { setSubmitting }: any) => {
-
+                    const { error } = await supabaseClient.from("worker_settings").update({ domain: values.domain }).eq("name", project);
+                    if (error) {
+                        Toast.toast(error.message, { type: "error" });
+                    } else {
+                        Toast.toast("Domain updated", { type: "success" });
+                    }
                 }}
             >
                 {({ isSubmitting }: any) => (
