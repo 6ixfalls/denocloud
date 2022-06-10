@@ -1,11 +1,9 @@
 import { Typography, Card, Button, Input, Form } from "@supabase/ui";
-import { ProjectState, BadgeColor, StateColors } from "../index";
-import { buildChartTheme, Axis, Grid, LineSeries, Tooltip, XYChart, TooltipProvider, AreaSeries } from "@visx/xychart";
+import { buildChartTheme, Axis, Grid, Tooltip, XYChart, TooltipProvider, AreaSeries } from "@visx/xychart";
 import { LinearGradient } from "@visx/gradient";
 import { ParentSize } from "@visx/responsive";
 import { appleStock } from '@visx/mock-data';
 import { Link } from "react-router-dom";
-import Toast from "../../../components/Toast";
 import * as yup from "yup";
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);

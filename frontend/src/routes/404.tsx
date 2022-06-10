@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { Button, Typography } from "@supabase/ui";
+import { Button } from "@supabase/ui";
 import { useEffect } from "react";
 import { supabaseClient } from '../index';
 
