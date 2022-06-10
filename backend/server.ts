@@ -24,11 +24,10 @@ async function getUserByRequest(request: Request, response: Response) {
             if (getUserError) throw new Error("Expired access token");
             return { token: accesstoken, user: user, data: user, error: null };
         } else {
-            console.log(request);
             throw new Error("No access token");
         }
     } catch (e) {
-        console.log(e);
+        console.log(e.message);
         return { token: null, user: null, data: null, error: e };
     }
 }
