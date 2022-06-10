@@ -1,12 +1,28 @@
-import { Typography, Card, Button } from "@supabase/ui";
+import { Typography, Card, Button, Input, Form } from "@supabase/ui";
 import { ProjectState, BadgeColor, StateColors } from "../index";
-import { buildChartTheme, Axis, Grid, LineSeries, Tooltip, XYChart, TooltipProvider } from "@visx/xychart";
+import { buildChartTheme, Axis, Grid, LineSeries, Tooltip, XYChart, TooltipProvider, AreaSeries } from "@visx/xychart";
+import { LinearGradient } from "@visx/gradient";
 import { ParentSize } from "@visx/responsive";
 import { appleStock } from '@visx/mock-data';
-import { Text as TextVisx } from "@visx/text";
 import { Link } from "react-router-dom";
+import Toast from "../../../components/Toast";
+import * as yup from "yup";
+
+const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
+
+yup.addMethod<yup.StringSchema>(yup.string, "tld", function (message = "Invalid Domain (Valid Formats: google.com, github.com, store.lunarclient.com)") {
+    return this.matches(TLDRegex, {
+        name: 'tld',
+        message,
+        excludeEmptyString: true,
+    });
+});
 
 const { Text } = Typography;
+
+const SettingsSchema = yup.object().shape({
+    domain: yup.string().tld(),
+})
 
 const data = appleStock.slice(1250);
 
@@ -38,7 +54,9 @@ const theme = buildChartTheme({
 export default function ProjectIndex() {
     return (
         <div>
-            <Button size="medium" className="mt-3 mr-10 float-right"><Link to="editor">Edit</Link></Button>
+            <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
+                <Button size="medium" className="mt-3 mr-10 float-right"><Link to="editor">Edit</Link></Button>
+            </div>
             <div className="columns-3 w-full py-5 px-10 h-auto">
                 <Card className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a] flex-col-reverse`} cover={
                     <div className="p-5 pt-0 h-[40vh]">
@@ -49,11 +67,13 @@ export default function ProjectIndex() {
                                         <Axis orientation="left" numTicks={5} />
                                         <Axis orientation="bottom" />
                                         <Grid />
-                                        <LineSeries dataKey="data" data={data} {...accessors} />
+                                        <LinearGradient id="gradient" from="#65d9a5" to="#65d9a5" fromOpacity={0.7} toOpacity={0.1} />
+                                        <AreaSeries dataKey="data" fill="url(#gradient)" data={data} {...accessors} />
                                         <Tooltip
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
                                             showVerticalCrosshair
+                                            verticalCrosshairStyle={{ stroke: "#888", strokeWidth: "1px" }}
                                             showDatumGlyph
                                             unstyled
                                             applyPositionStyle
@@ -83,7 +103,8 @@ export default function ProjectIndex() {
                                         <Axis orientation="left" numTicks={5} />
                                         <Axis orientation="bottom" />
                                         <Grid />
-                                        <LineSeries dataKey="data" data={data} {...accessors} />
+                                        <LinearGradient id="gradient" from="#65d9a5" to="#65d9a5" fromOpacity={0.7} toOpacity={0.1} />
+                                        <AreaSeries dataKey="data" fill="url(#gradient)" data={data} {...accessors} />
                                         <Tooltip
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
@@ -117,7 +138,8 @@ export default function ProjectIndex() {
                                         <Axis orientation="left" numTicks={5} />
                                         <Axis orientation="bottom" />
                                         <Grid />
-                                        <LineSeries dataKey="data" data={data} {...accessors} />
+                                        <LinearGradient id="gradient" from="#65d9a5" to="#65d9a5" fromOpacity={0.7} toOpacity={0.1} />
+                                        <AreaSeries dataKey="data" fill="url(#gradient)" data={data} {...accessors} />
                                         <Tooltip
                                             snapTooltipToDatumX
                                             snapTooltipToDatumY
@@ -143,6 +165,25 @@ export default function ProjectIndex() {
                     <span className="font-bold text-lg"><Text>12 ms</Text></span>
                 </Card>
             </div>
+            <Form
+                initialValues={{
+                    domain: ''
+                }}
+                validationSchema={SettingsSchema}
+                onSubmit={async (values: any, { setSubmitting }: any) => {
+
+                }}
+            >
+                {({ isSubmitting }: any) => (
+                    <div className="px-10">
+                        <span className="font-bold text-lg"><Text>Settings</Text></span>
+                        <span className="font-normal text-base"><Input id="domain" name="domain" label="Domain" layout="vertical" placeholder="example.com" autoComplete="off" /></span>
+                        <Button loading={isSubmitting} type="primary" htmlType="submit" className="mt-5">
+                            Save Changes
+                        </Button>
+                    </div>
+                )}
+            </Form>
         </div>
     );
 }
