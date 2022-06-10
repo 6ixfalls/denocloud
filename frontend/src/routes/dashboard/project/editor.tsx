@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import CodeMirror from "@uiw/react-codemirror";
 import { basicSetup } from "@codemirror/basic-setup";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
@@ -9,6 +9,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Loading, Button, IconUpload, Modal, Typography } from "@supabase/ui";
 import Upload from "../../../components/Upload";
 import Toast from "../../../components/Toast";
+import { supabaseClient } from '../../../index';
 
 const completePropertyAfter = ["PropertyName", ".", "?."]
 const dontCompleteIn = ["TemplateString", "LineComment", "BlockComment",
@@ -56,7 +57,7 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
     }
 
     async componentDidMount() {
-        const { data, error } = await globalThis.supabaseClient.storage.from("worker-storage").download(globalThis.supabaseClient.auth.user()?.id + "/" + this.props.project + ".js");
+        const { data, error } = await supabaseClient.storage.from("worker-storage").download(supabaseClient.auth.user()?.id + "/" + this.props.project + ".js");
         if (error) {
             this.setState({ code: 'console.log("Welcome to DenoCloud!");', loading: false });
         } else {
@@ -122,6 +123,7 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
                                 </div>
 
                                 <p className="text-xs text-gray-900">JS up to 50MB</p>
+                                <p className="text-xs font-medium text-gray-1200">{this.state.uploadFile?.name}</p>
                             </div>
                         </div>
                     </Upload.Dragger>
@@ -129,7 +131,7 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
                 <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
                     <Button icon={<IconUpload />} size="medium" className="m-2" onClick={() => this.setState({ uploadOpen: true })}>Upload File</Button>
                     <Button size="medium" className="m-2" onClick={async () => {
-                        const { error } = await globalThis.supabaseClient.storage.from("worker-storage").update(globalThis.supabaseClient.auth.user()?.id + "/" + this.props.project + ".js", this.state.code, { contentType: "text/javascript" });
+                        const { error } = await supabaseClient.storage.from("worker-storage").update(supabaseClient.auth.user()?.id + "/" + this.props.project + ".js", this.state.code, { contentType: "text/javascript" });
                         if (error) {
                             Toast.toast(error.message, { type: "error" });
                         } else {

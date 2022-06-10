@@ -14,6 +14,8 @@ function Dragger({
     children,
     files,
     setFile,
+    className,
+    title,
 }: any) {
     const [classes, setClasses] = useState([UploadStyles['sbui-upload-dragger']])
 
@@ -74,7 +76,7 @@ function Dragger({
             onDragLeave={dragLeave}
             onDrop={fileDrop}
         >
-            <label htmlFor="file-upload" className={classes.join(' ')}>
+            <label htmlFor="file-upload" className={classes.join(' ') + " " + className} title={title}>
                 <input
                     id="file-upload"
                     name="file-upload"

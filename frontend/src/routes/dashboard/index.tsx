@@ -1,8 +1,9 @@
 import React from "react";
-import PropTypes, { any, InferProps } from "prop-types";
+import PropTypes, { InferProps } from "prop-types";
 import { Link } from "react-router-dom";
-import { Typography, Tabs, Card, Loading, Badge } from "@supabase/ui";
+import { Typography, Tabs, Card, Loading, Badge, Button } from "@supabase/ui";
 import axios from "axios";
+import { supabaseClient } from '../../index';
 
 const { Text } = Typography;
 
@@ -47,7 +48,7 @@ class Cards extends React.Component<{}, { projects: Array<ProjectData> }> {
     }
 
     async componentDidMount() {
-        const session = globalThis.supabaseClient.auth.session();
+        const session = supabaseClient.auth.session();
         const data = await axios.get("http://localhost:80/projects/list", {
             headers: {
                 Authorization: `Bearer ${session?.access_token}`,
@@ -63,9 +64,12 @@ class Cards extends React.Component<{}, { projects: Array<ProjectData> }> {
             <div>
                 {this.state.projects.map((project: ProjectData) => (
                     <div key={project.name + "wrapper"}>
+                        <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
+                            <Button size="medium" className="mt-3 mr-10 float-right"><Link to="create">Create New</Link></Button>
+                        </div>
                         {project.loading
                             ? <Loading key={project.name} active><Card className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a]`} title="Loading Projects"></Card></Loading>
-                            : <Link to={"/dashboard/" + project.name} key={project.name + "container"}>
+                            : <Link to={"/dashboard/projects/" + project.name} key={project.name + "container"}>
                                 <Card key={project.name + "card"} className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a]`} title={project.name} titleExtra={<Badge color={StateColors.get(ProjectState[project.state || "UNKNOWN"])} size="large" dot>{ProjectState[project.state || "UNKNOWN"]}</Badge>} hoverable>
                                     <div className="flex flex-row">
                                         <div className="flex flex-col mx-7">
