@@ -1,6 +1,7 @@
-import Docker from "https://deno.land/x/denocker@v0.2.0/index.ts";
+import Docker from "https://deno.land/x/sdenocker@v0.2.2/index.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@1.35.3";
 import { connect } from "https://deno.land/x/redis@v0.26.0/mod.ts";
+import axiod from "https://deno.land/x/axiod@0.26.1/mod.ts";
 
 const supabase = createClient(
     Deno.env.get("SUPABASE_URL") || "",
@@ -14,4 +15,31 @@ const redis = await connect({
 
 const docker = new Docker("/var/run/docker.sock");
 
-export { supabase, redis, docker };
+// nginx proxy manager
+let BearerToken = "";
+let BearerTokenExpiry: Date;
+
+async function getNewTokenKey() {
+    const response = await axiod({
+        url: `${Deno.env.get("NPM_URL")}/api/tokens`,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        data: {
+            "identity": Deno.env.get("NPM_IDENTITY") || "",
+            "secret": Deno.env.get("NPM_SECRET") || ""
+        }
+    });
+
+    BearerToken = response.data.token;
+    BearerTokenExpiry = new Date(response.data.expires);
+}
+
+async function getTokenKey() {
+    if (BearerTokenExpiry < new Date())
+        await getNewTokenKey();
+    return BearerToken;
+}
+
+export { supabase, redis, docker, getTokenKey };

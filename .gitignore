@@ -9,3 +9,6 @@ start
 stop
 start.sh
 stop.sh
+
+# worker storage
+worker_storage/
