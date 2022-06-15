@@ -1,7 +1,6 @@
 # DenoCloud
 Simple Cloud Functions for Deno<br>
 ```diff
-+ Only works on aarch64, no other arch is supported as of now. (Docker image, todo to fix)
 - This project is not ready for use.
 ```
 
