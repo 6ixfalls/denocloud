@@ -1,7 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Typography, Form, Input, Button } from "@supabase/ui";
 import Upload from "../../../components/Upload";
 import * as yup from "yup";
+import { supabaseClient } from '../../../index';
+import Toast from "../../../components/Toast";
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
 
@@ -22,6 +25,7 @@ const ProjectSchema = yup.object().shape({
 
 export default function Project() {
     let [file, setFile] = React.useState<File>();
+    let navigate = useNavigate();
 
     return (
         <div>
@@ -32,7 +36,27 @@ export default function Project() {
                 }}
                 validationSchema={ProjectSchema}
                 onSubmit={async (values: any, { setSubmitting }: any) => {
+                    if (!file)
+                        file = new File([`console.log("Welcome to DenoCloud!");`], "worker.js", { type: "text/javascript" });
+                    const { error } = await supabaseClient.storage.from("worker-storage").upload(supabaseClient.auth.user()?.id + "/" + values.name + ".js", file);
 
+                    if (error) {
+                        Toast.toast(error.message);
+                    } else {
+                        const { error: insertError } = await supabaseClient.from("workers").insert({
+                            owner: supabaseClient.auth.user()?.id,
+                            name: values.name,
+                            domain: values.domain
+                        }, { returning: "minimal" });
+
+                        if (insertError)
+                            return Toast.toast(insertError.message);
+
+                        Toast.toast("Project created successfully");
+                        setTimeout(() => {
+                            navigate(`/dashboard/projects/${encodeURIComponent(values.name)}`, { replace: true });
+                        });
+                    }
                 }}
             >
                 {({ isSubmitting }: any) => (

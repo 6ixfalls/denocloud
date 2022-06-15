@@ -59,7 +59,7 @@ async function addNewProxy(domainName: string, host: string, port: number) {
     });
 }
 
-async function patchProxy(oldDomainName: string, newDomainName: string) {
+async function patchProxy(oldDomainName: string, newDomainName: string, hostname: string) {
     const proxyHosts = await axiod({
         url: `${Deno.env.get("NPM_URL")}/api/nginx/proxy-hosts`,
         method: "GET",
@@ -70,6 +70,9 @@ async function patchProxy(oldDomainName: string, newDomainName: string) {
     });
 
     const hostData = proxyHosts.data.find((host: any) => host.domain_names[0] === oldDomainName);
+
+    if (!hostData)
+        return await addNewProxy(newDomainName, hostname, 80);
     hostData.domain_names[0] = newDomainName;
     hostData.access_list_id = hostData.access_list_id.toString();
     hostData.certificate_id = "new";
@@ -82,6 +85,7 @@ async function patchProxy(oldDomainName: string, newDomainName: string) {
     delete hostData.certificate;
     delete hostData.created_on;
     delete hostData.enabled;
+    let id = hostData.id;
     delete hostData.id;
     delete hostData.modified_on;
     delete hostData.owner;
@@ -95,7 +99,7 @@ async function patchProxy(oldDomainName: string, newDomainName: string) {
     hostData.ssl_forced = !!hostData.ssl_forced;
 
     return await axiod({
-        url: `${Deno.env.get("NPM_URL")}/api/nginx/proxy-hosts`,
+        url: `${Deno.env.get("NPM_URL")}/api/nginx/proxy-hosts/${id}`,
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -124,12 +128,12 @@ async function deleteProxy(domainName: string) {
             },
         });
 
-        const hostId = proxyHosts.data.find((host: any) => host.domain_names[0] === domainName).id;
-        const certId = SSLCerts.data.find((cert: any) => cert.domain_names[0] === domainName).id;
+        const host = proxyHosts.data.find((host: any) => host.domain_names[0] === domainName);
+        const cert = SSLCerts.data.find((cert: any) => cert.domain_names[0] === domainName);
 
-        if (certId)
+        if (cert && cert.id)
             await axiod({
-                url: `${Deno.env.get("NPM_URL")}/api/nginx/certificates/${certId}`,
+                url: `${Deno.env.get("NPM_URL")}/api/nginx/certificates/${cert.id}`,
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -137,11 +141,11 @@ async function deleteProxy(domainName: string) {
                 },
             });
 
-        if (!hostId)
+        if (!host || !host.id)
             throw new Error("Missing host id!");
 
         await axiod({
-            url: `${Deno.env.get("NPM_URL")}/api/nginx/proxy-hosts/${hostId}`,
+            url: `${Deno.env.get("NPM_URL")}/api/nginx/proxy-hosts/${host.id}`,
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
@@ -274,11 +278,13 @@ router.post(
                         if (ContainerInfo.message) {
                             // deepcode ignore PT: removes container, not a file + uses local socket, not public
                             await docker.containers.rm(ContainerId);
+                            await redis.sendCommand("JSON.DEL", result.record.name, "$");
+                            await supabase.storage.from("worker-storage").remove([`${result.record.owner}/${result.record.name}.js`]);
                             response.status = Status.InternalServerError;
                             break;
                         }
 
-                        if (TLDRegex.test(result.record.domain)) {
+                        if (result.record.domain.match(TLDRegex)) {
                             try {
                                 await addNewProxy(result.record.domain, ContainerInfo.Config.Hostname, 80);
                             } catch (e) {
@@ -286,7 +292,17 @@ router.post(
                             }
                         }
 
-                        await docker.containers.start(ContainerId);
+                        const startResponse = await docker.containers.start(ContainerId);
+                        if (startResponse && startResponse.message) {
+                            // deepcode ignore PT: removes container, not a file + uses local socket, not public
+                            await docker.containers.rm(ContainerId);
+                            await redis.sendCommand("JSON.DEL", result.record.name, "$");
+                            await supabase.storage.from("worker-storage").remove([`${result.record.owner}/${result.record.name}.js`]);
+                            console.log("FATAL: ", startResponse.message);
+                            response.status = Status.InternalServerError;
+                        } else {
+                            await redis.sendCommand("JSON.DEL", result.record.name, "$.status");
+                        }
 
                         break;
                     }
@@ -300,13 +316,15 @@ router.post(
 
                         if (!ContainerInfo.message) {
                             //TODO: case doesnt seem to break
-                            if (TLDRegex.test(result.old_record.domain)) {
-                                if (TLDRegex.test(result.record.domain)) {
-                                    await patchProxy(result.old_record.domain, result.record.domain);
+                            if (result.old_record.domain.match(TLDRegex)) {
+                                if (result.record.domain.match(TLDRegex)) {
+                                    await patchProxy(result.old_record.domain, result.record.domain, ContainerInfo.Config.Hostname);
                                 } else {
-                                    await deleteProxy(result.old_record.domain);
+                                    try {
+                                        await deleteProxy(result.old_record.domain);
+                                    } catch (e) { }
                                 }
-                            } else if (TLDRegex.test(result.record.domain)) {
+                            } else if (result.record.domain.match(TLDRegex)) {
                                 await addNewProxy(result.record.domain, ContainerInfo.Config.Hostname, 80);
                             }
                         }
@@ -319,10 +337,14 @@ router.post(
 
                         if (!ContainerInfo.message) {
                             // deepcode ignore PT: removes container, not a file + uses local socket, not public
+                            await docker.containers.stop(ContainerId);
                             await docker.containers.rm(ContainerId);
                             await redis.sendCommand("JSON.DEL", result.record.name, "$");
-                            if (TLDRegex.test(result.record.domain)) {
-                                await deleteProxy(result.record.domain);
+                            await supabase.storage.from("worker-storage").remove([`${result.record.owner}/${result.record.name}.js`]);
+                            if (result.record.domain.match(TLDRegex)) {
+                                try {
+                                    await deleteProxy(result.record.domain);
+                                } catch (e) { }
                             }
                         }
                         break;

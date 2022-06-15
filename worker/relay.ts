@@ -1,4 +1,8 @@
 import {
+    readableStreamFromReader
+} from "https://deno.land/std@0.143.0/streams/conversion.ts";
+import { mergeReadableStreams } from "https://deno.land/std@0.143.0/streams/merge.ts";
+import {
     Application,
     Request,
     Status,
@@ -51,9 +55,8 @@ function patchedReq(req: Request): [URL, RequestInit] {
 async function relayTo(req: Request): Promise<Response> {
     const [url, init] = patchedReq(req);
     try {
-        const request = new Request(url);
         // deepcode ignore Ssrf: Proxying to local server
-        return await fetch(request, init);
+        return await fetch(url, init);
     } catch (e) {
         return new Response(e.message, { status: 500 });
     }
@@ -97,4 +100,24 @@ if (import.meta.main) {
 
     console.log(`Listening on http://${hostname}:${port}`);
     await app.listen({ port, hostname });
+
+    const workerProcess = Deno.run({
+        cmd: ["deno", "run", "--allow-net", "--allow-env", "/app/worker.ts"],
+        clearEnv: true,
+        stdout: "piped",
+        stderr: "piped",
+        env: {}
+    });
+
+    const stdout = readableStreamFromReader(workerProcess.stdout);
+    const stderr = readableStreamFromReader(workerProcess.stderr);
+    const joined = mergeReadableStreams(stdout, stderr);
+
+    const outReader = joined.getReader();
+    outReader.read().then((value: ReadableStreamReadResult<Uint8Array>) => {
+        if (value.done) {
+            return console.log("done");
+        }
+        console.log(value.value);
+    });
 }

@@ -18,7 +18,7 @@ const docker = new Docker("/var/run/docker.sock");
 
 // nginx proxy manager
 let BearerToken = "";
-let BearerTokenExpiry: Date;
+let BearerTokenExpiry = new Date(1970, 0, 1);
 
 async function getNewTokenKey() {
     const response = await axiod({

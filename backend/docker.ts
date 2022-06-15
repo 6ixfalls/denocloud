@@ -27,16 +27,25 @@ export async function createNewContainer(userID: string, projectName: string) {
             User: "deno",
             WorkingDir: "/app",
             ExposedPorts: { "80": {} },
-            Volumes: {
-                [`${ContainerFilePath}:/app/worker.ts`]: {},
-                [`${ROOT_DIR}worker:/app`]: {},
-            },
             Entrypoint: ["/bin/sh", "-c"],
             Cmd: ["/app/entrypoint.sh"],
             HostConfig: {
-                // @ts-ignore Denocker is missing typings for ReadonlyRootfs in HostConfig interface
-                ReadonlyRootfs: true,
-                NetworkMode: "nginx-proxy-manager_default"
+                NetworkMode: "nginx-proxy-manager_default",
+                //@ts-ignore mounts isnt in typings
+                Mounts: [
+                    {
+                        Target: "/app/worker.ts",
+                        Source: `${ContainerFilePath}`,
+                        Type: "bind",
+                        //ReadOnly: true,
+                    },
+                    {
+                        Target: "/app",
+                        Source: `${ROOT_DIR}worker`,
+                        Type: "bind",
+                        //ReadOnly: true,
+                    }
+                ]
             }
         });
 

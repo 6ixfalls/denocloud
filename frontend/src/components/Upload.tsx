@@ -83,7 +83,7 @@ function Dragger({
                     type="file"
                     className="sr-only"
                     onChange={fileUpload}
-                    accept=".js"
+                    accept=".js,.ts"
                 />
 
                 {children}
