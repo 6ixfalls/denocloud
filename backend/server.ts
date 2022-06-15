@@ -3,21 +3,26 @@ import {
     Router,
     Request,
     Response,
-    Cookies,
-    State,
     Status,
-    Context,
 } from "https://deno.land/x/oak@v10.6.0/mod.ts";
-import { readAll } from "https://deno.land/x/std@0.143.0/io/util.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import axiod from "https://deno.land/x/axiod@0.26.1/mod.ts";
-import { docker, supabase, getTokenKey } from "./apis.ts";
-import { createNewContainer } from "./docker.ts";
+import { redis, docker, supabase, getTokenKey, getJSON, parseRedisResponse } from "./apis.ts";
+import { ProjectState, createNewContainer } from "./docker.ts";
 
 const app = new Application();
 const router = new Router();
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
+const DockerStatusMap = new Map<string, ProjectState>([
+    ["created", ProjectState.STARTING],
+    ["running", ProjectState.RUNNING],
+    ["paused", ProjectState.STOPPED],
+    ["restarting", ProjectState.STARTING],
+    ["removing", ProjectState.FAILED],
+    ["exited", ProjectState.FAILED],
+    ["dead", ProjectState.FAILED],
+]);
 
 async function addNewProxy(domainName: string, host: string, port: number) {
     return await axiod({
@@ -195,9 +200,40 @@ router.get(
         cookies,
         state,
     }) => {
-        if (state.user)
-            response.body = `[{"name": "roproxy", "state": "RUNNING"}, {"name": "test", "state": "STOPPED"}, {"name": "test", "state": "STARTING"}, {"name": "test", "state": "FAILED"}, {"name": "test", "state": "UNKNOWN"}]`;
-        else {
+        if (state.user) {
+            const { data, error } = await supabase.from('workers').select('*').eq("owner", state.user.user.id).order("name", { ascending: true });
+            console.log("s1");
+            if (error) {
+                response.status = 500;
+                response.body = { error: error.message };
+            } else if (data) {
+                console.log("s2");
+                const pl = redis.pipeline();
+                data.forEach(worker => {
+                    pl.sendCommand("JSON.GET", worker.name, "$.status");
+                });
+                console.log("s3", redis.isConnected, redis.isClosed);
+                const statuses = (await pl.flush()).map(val => val && parseRedisResponse(val.toString()) as ProjectState);
+                console.log("s4");
+                await Promise.all(data.map(async (worker, index) => {
+                    let status = statuses[index];
+                    if (!status) {
+                        const ContainerInfo = await docker.containers.inspect(worker.container_id);
+                        if (!ContainerInfo.message)
+                            status = DockerStatusMap.get(ContainerInfo.State.Status);
+                        else
+                            status = ProjectState.UNKNOWN;
+                    }
+
+                    worker.status = status;
+
+                    delete worker.container_id;
+                }));
+                console.log("s5");
+                response.status = 200;
+                response.body = data;
+            }
+        } else {
             response.status = Status.Unauthorized;
         }
     }
@@ -225,17 +261,21 @@ router.post(
 
                 switch (result.type) {
                     case "INSERT": {
-                        const { success, id: ContainerId } = await createNewContainer(user.id, result.record.name);
-                        console.log(success, ContainerId);
-                        if (!success)
-                            return response.status = Status.InternalServerError;
+                        console.log("INSERT");
+                        const { success, id: ContainerId, error } = await createNewContainer(user.id, result.record.name);
+                        console.log(success, ContainerId, error);
+                        if (!success) {
+                            response.status = Status.InternalServerError;
+                            break;
+                        }
 
                         const ContainerInfo = await docker.containers.inspect(ContainerId);
 
                         if (ContainerInfo.message) {
                             // deepcode ignore PT: removes container, not a file + uses local socket, not public
                             await docker.containers.rm(ContainerId);
-                            return response.status = Status.InternalServerError;
+                            response.status = Status.InternalServerError;
+                            break;
                         }
 
                         if (TLDRegex.test(result.record.domain)) {
@@ -245,38 +285,47 @@ router.post(
                                 await deleteProxy(result.record.domain);
                             }
                         }
-                        return;
+
+                        await docker.containers.start(ContainerId);
+
+                        break;
                     }
                     case "UPDATE": {
+                        console.log("UPDATE");
+
                         const ContainerId = result.record.container_id;
+                        const res = await docker.containers.start(ContainerId);
+                        console.log(res);
                         const ContainerInfo = await docker.containers.inspect(ContainerId);
 
                         if (!ContainerInfo.message) {
                             //TODO: case doesnt seem to break
-                            if (TLDRegex.test(result.oldRecord.domain)) {
+                            if (TLDRegex.test(result.old_record.domain)) {
                                 if (TLDRegex.test(result.record.domain)) {
-                                    await patchProxy(result.oldRecord.domain, result.record.domain);
+                                    await patchProxy(result.old_record.domain, result.record.domain);
                                 } else {
-                                    await deleteProxy(result.oldRecord.domain);
+                                    await deleteProxy(result.old_record.domain);
                                 }
                             } else if (TLDRegex.test(result.record.domain)) {
                                 await addNewProxy(result.record.domain, ContainerInfo.Config.Hostname, 80);
                             }
                         }
-                        return;
+                        break;
                     }
                     case "DELETE": {
+                        console.log("DELETE");
                         const ContainerId = result.record.container_id;
                         const ContainerInfo = await docker.containers.inspect(ContainerId);
 
                         if (!ContainerInfo.message) {
                             // deepcode ignore PT: removes container, not a file + uses local socket, not public
                             await docker.containers.rm(ContainerId);
+                            await redis.sendCommand("JSON.DEL", result.record.name, "$");
                             if (TLDRegex.test(result.record.domain)) {
                                 await deleteProxy(result.record.domain);
                             }
                         }
-                        return;
+                        break;
                     }
                 }
             } else {

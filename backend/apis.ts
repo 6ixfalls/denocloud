@@ -11,6 +11,7 @@ const supabase = createClient(
 const redis = await connect({
     hostname: Deno.env.get("REDIS_HOST") || "",
     port: Deno.env.get("REDIS_PORT") || 6379,
+    password: Deno.env.get("REDIS_PASSWORD") || "",
 })
 
 const docker = new Docker("/var/run/docker.sock");
@@ -42,4 +43,17 @@ async function getTokenKey() {
     return BearerToken;
 }
 
-export { supabase, redis, docker, getTokenKey };
+function parseRedisResponse(response: string) {
+    return JSON.parse(response)[0];
+}
+
+async function getJSON(objectKey: string, JSONkey: string) {
+    const value = (await redis.sendCommand("JSON.GET", objectKey, JSONkey)).value();
+
+    if (value)
+        return parseRedisResponse(value.toString());
+    else
+        return null;
+}
+
+export { supabase, redis, docker, getTokenKey, parseRedisResponse, getJSON };

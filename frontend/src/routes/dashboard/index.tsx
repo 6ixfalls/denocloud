@@ -1,9 +1,10 @@
 import React from "react";
 import PropTypes, { InferProps } from "prop-types";
 import { Link } from "react-router-dom";
-import { Typography, Tabs, Card, Loading, Badge, Button } from "@supabase/ui";
+import { Typography, Tabs, Card, Loading, Button } from "@supabase/ui";
 import axios from "axios";
 import { supabaseClient } from '../../index';
+import Badge from "../../components/Badge";
 
 const { Text } = Typography;
 
@@ -33,10 +34,15 @@ export const StateColors = new Map<ProjectState, BadgeColor>([
     [ProjectState.UNKNOWN, "gray"],
 ]);
 
+export const DotStates: Array<ProjectState> = [
+    ProjectState.RUNNING,
+    ProjectState.STARTING,
+];
+
 type ProjectData = {
     name: string,
     loading?: boolean,
-    state?: keyof typeof ProjectState,
+    status?: ProjectState,
 }
 
 class Cards extends React.Component<{}, { projects: Array<ProjectData> }> {
@@ -70,7 +76,7 @@ class Cards extends React.Component<{}, { projects: Array<ProjectData> }> {
                         {project.loading
                             ? <Loading key={project.name} active><Card className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a]`} title="Loading Projects"></Card></Loading>
                             : <Link to={"/dashboard/projects/" + project.name} key={project.name + "container"}>
-                                <Card key={project.name + "card"} className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a]`} title={project.name} titleExtra={<Badge color={StateColors.get(ProjectState[project.state || "UNKNOWN"])} size="large" dot>{ProjectState[project.state || "UNKNOWN"]}</Badge>} hoverable>
+                                <Card key={project.name + "card"} className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a]`} title={project.name} titleExtra={<Badge color={StateColors.get(project.status || ProjectState.UNKNOWN)} size="large" dot={DotStates.includes(project.status || ProjectState.UNKNOWN)}>{project.status || "Unknown"}</Badge>} hoverable>
                                     <div className="flex flex-row">
                                         <div className="flex flex-col mx-7">
                                             <span><Text>Requests</Text></span><span className="font-normal"><Text>10</Text></span>

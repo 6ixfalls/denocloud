@@ -3,6 +3,14 @@ import { supabase, redis, docker } from "./apis.ts";
 
 const ROOT_DIR = new URL('..', import.meta.url).pathname;
 
+export enum ProjectState {
+    RUNNING = "Running",
+    STOPPED = "Stopped",
+    STARTING = "Starting",
+    FAILED = "Failed",
+    UNKNOWN = "Unknown",
+}
+
 export async function createNewContainer(userID: string, projectName: string) {
     try {
         const ContainerFilePath = `${ROOT_DIR}worker_storage/${userID}/${projectName}.js`;
@@ -20,11 +28,11 @@ export async function createNewContainer(userID: string, projectName: string) {
             WorkingDir: "/app",
             ExposedPorts: { "80": {} },
             Volumes: {
-                [`${ContainerFilePath}:/app/worker.js`]: {},
+                [`${ContainerFilePath}:/app/worker.ts`]: {},
                 [`${ROOT_DIR}worker:/app`]: {},
             },
             Entrypoint: ["/bin/sh", "-c"],
-            Cmd: ["./entrypoint.sh"],
+            Cmd: ["/app/entrypoint.sh"],
             HostConfig: {
                 // @ts-ignore Denocker is missing typings for ReadonlyRootfs in HostConfig interface
                 ReadonlyRootfs: true,
@@ -43,8 +51,15 @@ export async function createNewContainer(userID: string, projectName: string) {
             throw new Error("Failed to write container_id to database");
         }
 
+        const reply = await redis.sendCommand("JSON.SET", projectName, "$", JSON.stringify({
+            requests: [],
+            errors: [],
+            response: [],
+            status: ProjectState.STARTING,
+        }));
+
         return { success: true, id: container.Id };
     } catch (e) {
-        return { success: false, id: e.message };
+        return { success: false, id: e.message, error: e };
     }
 }
