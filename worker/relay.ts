@@ -1,7 +1,6 @@
-import {
-    readableStreamFromReader
-} from "https://deno.land/std@0.143.0/streams/conversion.ts";
-import { mergeReadableStreams } from "https://deno.land/std@0.143.0/streams/merge.ts";
+import { writeAll } from "https://deno.land/x/std@0.143.0/streams/conversion.ts";
+import { readLines } from "https://deno.land/x/std@0.143.0/io/mod.ts";
+import { connect, RedisValue } from "https://deno.land/x/redis@v0.26.0/mod.ts";
 import {
     Application,
     Request,
@@ -12,6 +11,12 @@ import {
 const app = new Application();
 
 const X_FORWARDED_HOST = "x-forwarded-host";
+
+const redis = await connect({
+    hostname: Deno.env.get("REDIS_HOST") || "",
+    port: Deno.env.get("REDIS_PORT") || 6379,
+    password: Deno.env.get("REDIS_PASSWORD") || "",
+});
 
 function sanitizeHeaders(headers: Headers): Headers {
     const sanitizedHeaders = new Headers();
@@ -94,30 +99,63 @@ app.use(async (ctx: Context, next: () => Promise<unknown>) => {
     await next();
 });
 
-if (import.meta.main) {
-    const port = 80;
-    const hostname = "0.0.0.0";
+app.addEventListener("listen", ({ hostname, port, secure }) => {
+    console.log(
+        `[Relay]: Listening on: ${secure ? "https://" : "http://"}${hostname ??
+        "localhost"
+        }:${port}`,
+    );
+});
 
-    console.log(`Listening on http://${hostname}:${port}`);
-    await app.listen({ port, hostname });
+async function pipeOutput(readable: ReadableStream<Uint8Array>, writer: Deno.Writer, error = false) {
+    const reader = readable.getReader();
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
 
-    const workerProcess = Deno.run({
-        cmd: ["deno", "run", "--allow-net", "--allow-env", "/app/worker.ts"],
+    reader.read().then(async function process({ done, value }): Promise<any> {
+        if (done) return;
+
+        const line = decoder.decode(value);
+
+        await writeAll(writer, encoder.encode(`[Worker ${error ? "stderr" : "stdout"}]: ${line}`));
+
+        if (Deno.env.get("PROJECT_NAME") && Deno.env.get("OWNER_ID")) {
+            const pl = redis.pipeline();
+            pl.sendCommand("JSON.ARRINSERT", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", JSON.stringify({
+                content: line,
+                timestamp: new Date().toISOString(),
+                isError: error,
+            }));
+            pl.sendCommand("JSON.ARRTRIM", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", "100");
+            await pl.flush();
+        }
+
+        return await reader.read().then(process);
+    });
+}
+
+async function workerLoop() {
+    const workerProcess = Deno.spawnChild(Deno.execPath(), {
+        args: ["run", "--allow-net", "--allow-env", "/app/worker.ts"],
         clearEnv: true,
         stdout: "piped",
         stderr: "piped",
-        env: {}
-    });
-
-    const stdout = readableStreamFromReader(workerProcess.stdout);
-    const stderr = readableStreamFromReader(workerProcess.stderr);
-    const joined = mergeReadableStreams(stdout, stderr);
-
-    const outReader = joined.getReader();
-    outReader.read().then((value: ReadableStreamReadResult<Uint8Array>) => {
-        if (value.done) {
-            return console.log("done");
+        env: {
+            DENO_DIR: "/deno-dir/"
         }
-        console.log(value.value);
     });
+
+    pipeOutput(workerProcess.stdout, Deno.stdout);
+    pipeOutput(workerProcess.stderr, Deno.stderr, true);
+
+    const status = await workerProcess.status;
+    console.log(`[Relay]: Worker exited with code ${status.code} and signal ${status.signal}`);
+    console.log("[Relay]: Restarting worker");
+
+    setTimeout(workerLoop, 1000);
+}
+
+if (import.meta.main) {
+    workerLoop();
+    await app.listen({ port: 80, hostname: "0.0.0.0" });
 }

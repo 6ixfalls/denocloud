@@ -9,5 +9,6 @@
         "./worker",
         "./backend"
     ],
+    "deno.unstable": true,
     "typescript.validate.enable": false
 }

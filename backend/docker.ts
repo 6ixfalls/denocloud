@@ -46,7 +46,14 @@ export async function createNewContainer(userID: string, projectName: string) {
                         //ReadOnly: true,
                     }
                 ]
-            }
+            },
+            Env: [
+                `REDIS_HOST=${Deno.env.get("REDIS_HOST")}`,
+                `REDIS_PORT=${Deno.env.get("REDIS_PORT")}`,
+                `REDIS_PASSWORD=${Deno.env.get("REDIS_PASSWORD")}`,
+                `PROJECT_NAME=${projectName}`,
+                `OWNER_ID=${userID}`
+            ]
         });
 
         if (container.message)
@@ -64,6 +71,7 @@ export async function createNewContainer(userID: string, projectName: string) {
             requests: [],
             errors: [],
             response: [],
+            logs: [],
             status: ProjectState.STARTING,
         }));
 
