@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 import './index.css';
 import App from './App';
@@ -30,9 +30,12 @@ ReactDOM.render(
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<DashboardIndex />} />
           <Route path="create" element={<ProjectCreate />} />
-          <Route path="projects/:project" element={<Project />}>
-            <Route index element={<ProjectIndex />} />
-            <Route path="editor" element={<Editor />} />
+          <Route path="projects">
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path=":project" element={<Project />}>
+              <Route index element={<ProjectIndex />} />
+              <Route path="editor" element={<Editor />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

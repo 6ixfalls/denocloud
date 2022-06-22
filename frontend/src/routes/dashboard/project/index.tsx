@@ -56,8 +56,8 @@ export default function ProjectIndex() {
 
     return (
         <div>
-            <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
-                <Button size="medium" className="mt-3 mr-10 float-right"><Link to="editor">Edit</Link></Button>
+            <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0 pointer-events-none">
+                <Button size="medium" className="mt-3 mr-10 float-right pointer-events-auto"><Link to="editor">Edit</Link></Button>
             </div>
             <div className="columns-3 w-full py-5 px-10 h-auto">
                 <Card className={`card bg-[#1f1f1f] mb-2 border-[#2a2a2a] flex-col-reverse`} cover={

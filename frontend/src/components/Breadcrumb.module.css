@@ -1,0 +1,33 @@
+.sbui-breadcrumb--container {
+    @apply flex flex-row items-center;
+    @apply p-0 my-0;
+    @apply text-sm;
+}
+
+.sbui-breadcrumb--item-container {
+    @apply flex items-center;
+}
+
+.sbui-breadcrumb--item {
+    @apply cursor-pointer;
+    @apply transition text-scale-1100 hover:text-brand-1000;
+}
+
+.sbui-breadcrumb--item__active {
+    @apply text-brand-900 hover:text-brand-1200;
+}
+
+.sbui-breadcrumb--separator {
+    @apply mx-2;
+    @apply text-scale-1100 hover:text-white;
+}
+
+.sbui-breadcrumb--separator-small {
+    @apply mx-2;
+}
+.sbui-breadcrumb--separator-medium {
+    @apply mx-4;
+}
+.sbui-breadcrumb--separator-large {
+    @apply mx-6;
+}
