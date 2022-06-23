@@ -30,7 +30,7 @@ const Breadcrumb = ({
     return (
         <ol className={classes.join(' ')} style={style} aria-label="Breadcrumb">
             {children!.map((child: React.ReactNode, idx: number) => (
-                <li className={BreadcrumbStyle['sbui-breadcrumb--item-container']}>
+                <li className={BreadcrumbStyle['sbui-breadcrumb--item-container']} key={"breadcrumb" + idx}>
                     {child}
                     {idx + 1 < children!.length && (
                         <IconChevronRight

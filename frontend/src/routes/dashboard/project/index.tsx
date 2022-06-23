@@ -1,4 +1,6 @@
-import { Typography, Card, Button, Input, Form } from "@supabase/ui";
+import { Typography, Card, Button } from "@supabase/ui";
+import Input from "../../../components/Form/Input";
+import Form from "../../../components/Form/Form";
 import { buildChartTheme, Axis, Grid, Tooltip, XYChart, TooltipProvider, AreaSeries } from "@visx/xychart";
 import { LinearGradient } from "@visx/gradient";
 import { ParentSize } from "@visx/responsive";
@@ -7,8 +9,20 @@ import { Link, useParams } from "react-router-dom";
 import * as yup from "yup";
 import { supabaseClient } from "../../..";
 import Toast from "../../../components/Toast";
+import KeyValue from "../../../components/KeyValue";
+import React from "react";
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
+
+yup.addMethod(yup.array, 'unique', function (
+    mapper = (a: any) => a,
+    // eslint-disable-next-line
+    message: string = '${path} may not have duplicates'
+) {
+    return this.test('unique', message, (list: any) => {
+        return list.length === new Set(list.map(mapper)).size;
+    });
+});
 
 yup.addMethod<yup.StringSchema>(yup.string, "tld", function (message = "Invalid Domain (Valid Formats: google.com, github.com, store.lunarclient.com)") {
     return this.matches(TLDRegex, {
@@ -22,6 +36,12 @@ const { Text } = Typography;
 
 const SettingsSchema = yup.object().shape({
     domain: yup.string().tld(),
+    envVariables: yup.array().of(
+        yup.object().shape({
+            key: yup.string(),
+            value: yup.string()
+        })
+    ).unique((a: any) => a.key)
 })
 
 const data = appleStock.slice(1250);
@@ -171,10 +191,12 @@ export default function ProjectIndex() {
             </div>
             <Form
                 initialValues={{
-                    domain: ''
+                    domain: '',
+                    envVariables: [{ key: "test", value: "test_env_secret_value" }],
                 }}
                 validationSchema={SettingsSchema}
                 onSubmit={async (values: any, { setSubmitting }: any) => {
+                    console.log(values.envVariables);
                     const { error } = await supabaseClient.from("worker_settings").update({ domain: values.domain }).eq("name", project);
                     if (error) {
                         Toast.toast(error.message, { type: "error" });
@@ -187,6 +209,8 @@ export default function ProjectIndex() {
                     <div className="px-10">
                         <span className="font-bold text-lg"><Text>Settings</Text></span>
                         <span className="font-normal text-base"><Input id="domain" name="domain" label="Domain" layout="vertical" placeholder="example.com" autoComplete="off" /></span>
+                        <span className="font-normal text-scale-1100 text-sm"><Text>Environment Variables</Text></span>
+                        <KeyValue labelKey="Parameter" labelValue="Value" valueKey="envVariables" />
                         <Button loading={isSubmitting} type="primary" htmlType="submit" className="mt-5">
                             Save Changes
                         </Button>
