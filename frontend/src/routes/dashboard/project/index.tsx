@@ -200,8 +200,7 @@ export default function ProjectIndex() {
                 }}
                 validationSchema={SettingsSchema}
                 onSubmit={async (values: any, { setSubmitting }: any) => {
-                    console.log(values.envVariables);
-                    const { error } = await supabaseClient.from("worker_settings").update({ domain: [values.domain] }).eq("name", project);
+                    const { error } = await supabaseClient.from("worker_settings").update({ domain: [values.domain], env: values.envVariables }).eq("name", project);
                     if (error) {
                         Toast.toast(error.message, { type: "error" });
                     } else {
