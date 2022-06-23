@@ -258,6 +258,7 @@ router.post(
                 const result = await request.body().value;
                 if (!result.record)
                     result.record = result.old_record;
+                result.record.domain = result.record.domain[0];
                 const { data: user, error } = await supabase.auth.api.getUserById(result.record.owner);
 
                 if (error)

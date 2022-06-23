@@ -46,7 +46,7 @@ export default function Project() {
                         const { error: insertError } = await supabaseClient.from("workers").insert({
                             owner: supabaseClient.auth.user()?.id,
                             name: values.name,
-                            domain: values.domain
+                            domain: [values.domain]
                         }, { returning: "minimal" });
 
                         if (insertError)

@@ -73,6 +73,10 @@ const theme = buildChartTheme({
 
 export default function ProjectIndex() {
     const { project } = useParams();
+    /*
+    const [options, setOptions] = React.useState<any[]>([]);
+    const [value, setValue] = React.useState<string[]>([]);
+    */
 
     return (
         <div>
@@ -197,7 +201,7 @@ export default function ProjectIndex() {
                 validationSchema={SettingsSchema}
                 onSubmit={async (values: any, { setSubmitting }: any) => {
                     console.log(values.envVariables);
-                    const { error } = await supabaseClient.from("worker_settings").update({ domain: values.domain }).eq("name", project);
+                    const { error } = await supabaseClient.from("worker_settings").update({ domain: [values.domain] }).eq("name", project);
                     if (error) {
                         Toast.toast(error.message, { type: "error" });
                     } else {
@@ -209,6 +213,33 @@ export default function ProjectIndex() {
                     <div className="px-10">
                         <span className="font-bold text-lg"><Text>Settings</Text></span>
                         <span className="font-normal text-base"><Input id="domain" name="domain" label="Domain" layout="vertical" placeholder="example.com" autoComplete="off" /></span>
+                        {/*<MultiSelect
+                            options={options}
+                            value={value}
+                            placeholder="example.com"
+                            label={"Domains"}
+                            searchPlaceholder="Search for domain"
+                            emptyMessageGenerator={(text: string) => {
+                                if (text.match(TLDRegex)) {
+                                    return (
+                                        <div
+                                            onClick={() => {
+                                                setOptions([...options, { name: text, value: text, id: text, disabled: false }]);
+                                            }}
+                                            className={[
+                                                'text-scale-1100 font-medium',
+                                                'flex cursor-pointer items-center justify-between transition',
+                                                'space-x-1 rounded bg-transparent p-2 px-4 text-sm hover:bg-gray-600',
+                                            ].join(' ')}
+                                        >
+                                            <span className="font-normal">Add <span className="font-medium">{text}</span>...</span>
+                                        </div>
+                                    )
+                                } else {
+                                    return (<></>)
+                                }
+                            }}
+                        />*/}
                         <span className="font-normal text-scale-1100 text-sm"><Text>Environment Variables</Text></span>
                         <KeyValue labelKey="Parameter" labelValue="Value" valueKey="envVariables" />
                         <Button loading={isSubmitting} type="primary" htmlType="submit" className="mt-5">
