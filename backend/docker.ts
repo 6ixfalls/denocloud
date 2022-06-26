@@ -51,6 +51,8 @@ export async function createNewContainer(userID: string, projectName: string) {
                 `REDIS_HOST=${Deno.env.get("REDIS_HOST")}`,
                 `REDIS_PORT=${Deno.env.get("REDIS_PORT")}`,
                 `REDIS_PASSWORD=${Deno.env.get("REDIS_PASSWORD")}`,
+                `SUPABASE_URL=${Deno.env.get("SUPABASE_URL")}`,
+                `SUPABASE_SERVICE_KEY=${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
                 `PROJECT_NAME=${projectName}`,
                 `OWNER_ID=${userID}`
             ]

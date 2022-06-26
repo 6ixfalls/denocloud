@@ -1,5 +1,5 @@
 import { writeAll } from "https://deno.land/x/std@0.143.0/streams/conversion.ts";
-import { readLines } from "https://deno.land/x/std@0.143.0/io/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@1.35.3";
 import { connect, RedisValue } from "https://deno.land/x/redis@v0.26.0/mod.ts";
 import {
     Application,
@@ -10,7 +10,24 @@ import {
 
 const app = new Application();
 
+let ENV: {
+    [key: string]: string;
+} = {};
+
+type Worker = {
+    name: string,
+    env: {
+        key: string,
+        value: string,
+    }[],
+}
+
 const X_FORWARDED_HOST = "x-forwarded-host";
+
+const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") || "",
+    Deno.env.get("SUPABASE_SERVICE_KEY") || ""
+);
 
 const redis = await connect({
     hostname: Deno.env.get("REDIS_HOST") || "",
@@ -141,7 +158,8 @@ async function workerLoop() {
         stdout: "piped",
         stderr: "piped",
         env: {
-            DENO_DIR: "/deno-dir/"
+            DENO_DIR: "/deno-dir/",
+            ...ENV
         }
     });
 
@@ -156,6 +174,22 @@ async function workerLoop() {
 }
 
 if (import.meta.main) {
-    workerLoop();
-    await app.listen({ port: 80, hostname: "0.0.0.0" });
+    const { data, error } = await supabase.from<Worker>("workers").select("env").eq("name", Deno.env.get("PROJECT_NAME") || " ".repeat(51)).single();
+    if (error) {
+        console.error(error);
+        const pl = redis.pipeline();
+        pl.sendCommand("JSON.ARRINSERT", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", JSON.stringify({
+            content: "[Relay]: Worker failed to start. If this error repeats, delete and create the worker again.",
+            timestamp: new Date().toISOString(),
+            isError: error,
+        }));
+        pl.sendCommand("JSON.ARRTRIM", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", "100");
+        await pl.flush();
+    } else {
+        data.env.forEach(envVar => {
+            ENV[envVar.key] = envVar.value;
+        });
+        workerLoop();
+        await app.listen({ port: 80, hostname: "0.0.0.0" });
+    }
 }
