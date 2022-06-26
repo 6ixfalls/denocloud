@@ -14,12 +14,6 @@ services:
       - ./:/app
     entrypoint: ["/bin/sh", "-c"]
     command: ./entrypoint.sh
-    environment:
-      - DENO_ORIGIN=${DENO_ORIGIN}
-      - ENDPOINT=${ENDPOINT}
-      - BUCKET_NAME=${BUCKET_NAME}
-      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
-      - ACCESS_KEY=${ACCESS_KEY}
 
 networks:
   default:

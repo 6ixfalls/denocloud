@@ -1,2 +1,2 @@
 #!/bin/bash
-deno run --allow-read --allow-run --allow-net --allow-env --unstable /app/relay.ts
+sudo doppler run --command "/usr/bin/deno run --allow-all --unstable backend/server.ts"

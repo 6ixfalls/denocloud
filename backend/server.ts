@@ -4,6 +4,7 @@ import {
     Request,
     Response,
     Status,
+    send,
 } from "https://deno.land/x/oak@v10.6.0/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import axiod from "https://deno.land/x/axiod@0.26.1/mod.ts";
@@ -362,24 +363,21 @@ router.post(
     }
 )
 
-router.get(
-    "/",
-    async ({
-        request,
-        response,
-        cookies,
-        state,
-    }) => {
-        if (state.user) response.body = `Hello ${state.user.data.email}`;
-        else {
-            response.status = Status.Unauthorized;
-        }
-    }
-);
+router.get("(.*)", async ({ request, response }) => {
+    const index = await Deno.readFile(`${Deno.cwd()}/frontend/build/index.html`);
+    response.body = index;
+    response.headers.set("Content-Type", "text/html; charset=utf-8");
+});
 
 app.use(oakCors({ origin: /^.+localhost:(1234|3000)$/ }));
 app.use(router.routes());
 app.use(router.allowedMethods());
+
+app.use(async (context) => {
+    await send(context, context.request.url.pathname, {
+        root: `${Deno.cwd()}/frontend/build`,
+    });
+})
 
 if (import.meta.main) {
     const port = 80;
