@@ -12,8 +12,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - /usr/lib/libdevmapper.so.1.02:/usr/lib/libdevmapper.so.1.02
       - ./:/app
-    entrypoint: ["/bin/sh", "-c"]
-    command: ./entrypoint.sh
+    command: [ "run", "--allow-all", "--unstable", "backend/server.ts" ]
     environment:
       - NPM_IDENTITY
       - NPM_SECRET
