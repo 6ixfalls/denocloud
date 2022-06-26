@@ -55,7 +55,7 @@ class Cards extends React.Component<{}, { projects: Array<ProjectData> }> {
 
     async componentDidMount() {
         const session = supabaseClient.auth.session();
-        const data = await axios.get("http://localhost:80/projects/list", {
+        const data = await axios.get(`${window.location.origin}/projects/list`, {
             headers: {
                 Authorization: `Bearer ${session?.access_token}`,
             }

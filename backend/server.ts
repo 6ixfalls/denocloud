@@ -363,21 +363,29 @@ router.post(
     }
 )
 
-router.get("(.*)", async ({ request, response }) => {
-    const index = await Deno.readFile(`${Deno.cwd()}/frontend/build/index.html`);
-    response.body = index;
-    response.headers.set("Content-Type", "text/html; charset=utf-8");
-});
-
 app.use(oakCors({ origin: /^.+localhost:(1234|3000)$/ }));
+app.use(async ({ response }, next) => {
+    try {
+        await next();
+    } catch (err) {
+        if (err.name === "NotFoundError") {
+            const index = await Deno.readFile(`${Deno.cwd()}/frontend/build/index.html`);
+            response.body = index;
+            response.headers.set("Content-Type", "text/html; charset=utf-8");
+        } else {
+            response.status = Status.InternalServerError;
+            response.body = err.message;
+        }
+    }
+});
 app.use(router.routes());
 app.use(router.allowedMethods());
-
 app.use(async (context) => {
     await send(context, context.request.url.pathname, {
         root: `${Deno.cwd()}/frontend/build`,
+        index: "index.html",
     });
-})
+});
 
 if (import.meta.main) {
     const port = 80;
