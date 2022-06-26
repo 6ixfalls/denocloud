@@ -128,9 +128,9 @@ class EditorComponent extends React.Component<{ project: string }, { code: strin
                         </div>
                     </Upload.Dragger>
                 </Modal>
-                <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0">
-                    <Button icon={<IconUpload />} size="medium" className="m-2" onClick={() => this.setState({ uploadOpen: true })}>Upload File</Button>
-                    <Button size="medium" className="m-2" onClick={async () => {
+                <div className="w-full flex flex-row-reverse mt-3 right-5 absolute top-0 pointer-events-none">
+                    <Button icon={<IconUpload />} size="medium" className="m-2 pointer-events-auto" onClick={() => this.setState({ uploadOpen: true })}>Upload File</Button>
+                    <Button size="medium" className="m-2 pointer-events-auto" onClick={async () => {
                         const { error } = await supabaseClient.storage.from("worker-storage").update(supabaseClient.auth.user()?.id + "/" + this.props.project + ".js", this.state.code, { contentType: "text/javascript" });
                         if (error) {
                             Toast.toast(error.message, { type: "error" });

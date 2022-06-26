@@ -14,7 +14,6 @@ const app = new Application();
 const router = new Router();
 
 const TLDRegex = new RegExp(/^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-_]{1,63}(?<!-)(?:\.|$)){2,}$/gim);
-const ENVRegex = new RegExp(/[a-zA-Z_]+[a-zA-Z0-9_]*/);
 const DockerStatusMap = new Map<string, ProjectState>([
     ["created", ProjectState.STARTING],
     ["running", ProjectState.RUNNING],

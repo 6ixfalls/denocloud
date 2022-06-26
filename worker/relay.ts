@@ -22,6 +22,8 @@ type Worker = {
     }[],
 }
 
+const ENVRegex = new RegExp(/[a-zA-Z_]+[a-zA-Z0-9_]*/);
+
 const X_FORWARDED_HOST = "x-forwarded-host";
 
 const supabase = createClient(
@@ -181,13 +183,24 @@ if (import.meta.main) {
         pl.sendCommand("JSON.ARRINSERT", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", JSON.stringify({
             content: "[Relay]: Worker failed to start. If this error repeats, delete and create the worker again.",
             timestamp: new Date().toISOString(),
-            isError: error,
+            isError: true,
         }));
         pl.sendCommand("JSON.ARRTRIM", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", "100");
         await pl.flush();
     } else {
-        data.env.forEach(envVar => {
-            ENV[envVar.key] = envVar.value;
+        data.env.forEach(async envVar => {
+            if (envVar.key.match(ENVRegex)) {
+                ENV[envVar.key] = envVar.value;
+            } else {
+                const pl = redis.pipeline();
+                pl.sendCommand("JSON.ARRINSERT", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", JSON.stringify({
+                    content: `[DenoCloud]: The environment variable ${envVar.key} contains invalid characters!`,
+                    timestamp: new Date().toISOString(),
+                    isError: true,
+                }));
+                pl.sendCommand("JSON.ARRTRIM", Deno.env.get("PROJECT_NAME") as RedisValue, "$.logs", "0", "100");
+                await pl.flush();
+            }
         });
         workerLoop();
         await app.listen({ port: 80, hostname: "0.0.0.0" });

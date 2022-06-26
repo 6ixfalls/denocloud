@@ -22,7 +22,7 @@ export async function createNewContainer(userID: string, projectName: string) {
 
         await Deno.writeTextFile(ContainerFilePath, dataString);
 
-        const container = await docker.containers.create(projectName, {
+        const container = await docker.containers.create(`denocloud_${projectName}`, {
             Image: "sixfalls/deno:latest",
             User: "deno",
             WorkingDir: "/app",
