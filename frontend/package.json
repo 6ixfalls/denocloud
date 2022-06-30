@@ -13,7 +13,7 @@
     "@types/prop-types": "^15.7.5",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
-    "@uiw/react-codemirror": "^4.7.0",
+    "@uiw/react-codemirror": "^4.8.1",
     "@visx/gradient": "^2.10.0",
     "@visx/mock-data": "^2.1.2",
     "@visx/responsive": "^2.10.0",
