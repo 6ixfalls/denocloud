@@ -11,7 +11,7 @@
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.36",
     "@types/prop-types": "^15.7.5",
-    "@types/react": "^17.0.39",
+    "@types/react": "^17.0.46",
     "@types/react-dom": "^17.0.11",
     "@uiw/react-codemirror": "^4.7.0",
     "@visx/gradient": "^2.10.0",
